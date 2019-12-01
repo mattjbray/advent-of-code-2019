@@ -1,5 +1,5 @@
 module Part_1 = struct
-  let fuel mass = floor (float_of_int mass /. 3.) -. 2. |> int_of_float
+  let fuel mass = (mass / 3) - 2
 
   let%expect_test "fuel" =
     CCFormat.(
