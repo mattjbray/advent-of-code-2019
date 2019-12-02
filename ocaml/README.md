@@ -7,5 +7,5 @@
 $ opam switch create . ocaml-base-compiler.4.09.0
 $ eval $(opam env)
 $ dune runtest [--watch]
-$ dune exec -- day-1 --part 1
+$ dune exec -- day-01 --part 1
 ```
