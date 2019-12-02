@@ -1,4 +1,4 @@
 (executables
- (public_names day-1)
- (names day_1)
+ (public_names day-1 day-02)
+ (names day_1 day_02)
  (libraries aoc containers))
