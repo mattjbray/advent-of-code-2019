@@ -7,10 +7,8 @@ let data = ref "data/day_1.txt"
 let () =
   Arg.parse
     (Arg.align
-       [
-         ("--part", Set_int part, "Part to execute (1 or 2)");
-         ("--data", Set_string data, "Data file");
-       ])
+       [ ("--part", Set_int part, "Part to execute (1 or 2)")
+       ; ("--data", Set_string data, "Data file") ])
     ignore ""
 
 let masses = CCIO.with_in !data CCIO.read_lines_l |> CCList.map int_of_string
@@ -25,4 +23,5 @@ let () =
   | 2 ->
       let total_fuel = masses |> CCList.map Part_2.fuel |> sum in
       CCFormat.printf "%i@." total_fuel
-  | _ -> ()
+  | _ ->
+      ()
