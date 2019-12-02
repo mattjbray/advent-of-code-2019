@@ -12,6 +12,9 @@ module Part_1 = struct
     let p = CCParse.(sep ~by:(char ',') U.int >|= Array.of_list >|= of_array)
 
     let of_string_exn str = CCParse.parse_string_exn p str
+
+
+    let copy (Program p) = Program (Array.copy p)
   end
 
   type address = Address of int
@@ -168,4 +171,15 @@ module Part_1 = struct
     let result = run program in
     CCFormat.(printf "%a@." pp_result (result, program));
     [%expect {| (), [30,1,1,4,2,5,6,0,99] |}]
+end
+
+
+module Part_2 = struct
+  let run_with_values program v1 v2 =
+    let open Part_1 in
+    CCResult.(
+      set program (Address 1) (Value v1) >>= fun () ->
+      set program (Address 2) (Value v2) >>= fun () ->
+      run program >>= fun () -> value_of_address program (Address 0)
+    )
 end

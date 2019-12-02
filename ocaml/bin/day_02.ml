@@ -21,11 +21,30 @@ let () =
           CCIO.with_in !data CCIO.read_all |> Program.of_string_exn
         in
         let result =
-          CCResult.(
-            set program (Address 1) (Value 12) >>= fun () ->
-            set program (Address 2) (Value 2) >>= fun () ->
-            run program >>= fun () -> value_of_address program (Address 0))
+          Part_2.run_with_values program 12 02
         in
         CCFormat.(
           printf "%a@." (pp_print_result ~ok:Value.pp ~error:pp_error) result))
+  | 2 ->
+    let program =
+      CCIO.with_in !data CCIO.read_all |> Part_1.Program.of_string_exn
+    in
+    let next noun verb =
+      if verb < 99 then noun, verb + 1
+      else
+        noun + 1, 0
+    in
+    let rec attempt noun verb =
+      let p = Part_1.Program.copy program in
+      match Part_2.run_with_values p noun verb with
+      | Ok (Value 19690720) -> Some (100 * noun + verb)
+      | _ ->
+        let noun, verb = next noun verb in
+        attempt noun verb
+    in
+    let result = attempt 0 0 in
+    CCFormat.(
+      printf "%a@." (some int) result)
+
+
   | _ -> ()
