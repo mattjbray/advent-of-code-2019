@@ -2,7 +2,7 @@ open Aoc.Day_01
 
 let part = ref 1
 
-let data = ref "data/day_1.txt"
+let data = ref "data/day_01.txt"
 
 let () =
   Arg.parse
