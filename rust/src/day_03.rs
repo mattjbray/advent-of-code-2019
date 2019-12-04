@@ -1,5 +1,6 @@
-pub fn solve(part: i8, data: String) {
+pub fn solve(part: u8, data: Result<String, std::io::Error>) {
     use part_1::*;
+    let data: String = data.expect("couldn't read data file");
     let mut lines = data.lines();
     let moves_1 = lines.next().expect("wrong number of lines in data");
     let moves_1 = parse_moves(&moves_1).expect("couldn't parse moves from data");

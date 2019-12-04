@@ -1,5 +1,6 @@
-pub fn solve(part: i8, data: String) {
+pub fn solve(part: u8, data: Result<String, std::io::Error>) {
     let mut program: Vec<usize> = data
+        .expect("couldn't read data file")
         .split(",")
         .map(|s| s.parse::<usize>().expect("bad data"))
         .collect();

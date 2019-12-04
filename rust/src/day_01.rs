@@ -1,5 +1,9 @@
-pub fn solve(part: i8, data: String) {
-    let masses: Vec<i32> = data.lines().map(|s| s.parse::<i32>().unwrap()).collect();
+pub fn solve(part: u8, data: Result<String, std::io::Error>) {
+    let masses: Vec<i32> = data
+        .expect("couldn't read data file")
+        .lines()
+        .map(|s| s.parse::<i32>().unwrap())
+        .collect();
     match part {
         1 => {
             let result1: i32 = masses.iter().map(|&m| part_1::fuel(m)).sum();

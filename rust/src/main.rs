@@ -37,15 +37,16 @@ fn main() {
     let part = matches.value_of("part").unwrap();
     let file = matches.value_of("file");
 
-    match (day.parse::<i8>(), part.parse::<i8>()) {
+    match (day.parse::<u8>(), part.parse::<u8>()) {
         (Ok(day), Ok(part)) => {
             let def_file = format!("../ocaml/data/day_{:02}.txt", day);
             let file = file.unwrap_or(&def_file);
-            let data = std::fs::read_to_string(file).expect("couldn't read file");
+            let data = std::fs::read_to_string(file);
             match day {
                 1 => day_01::solve(part, data),
                 2 => day_02::solve(part, data),
                 3 => day_03::solve(part, data),
+                4 => day_04::solve(part, data),
                 _ => (),
             }
         }
@@ -56,3 +57,4 @@ fn main() {
 mod day_01;
 mod day_02;
 mod day_03;
+mod day_04;
