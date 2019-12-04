@@ -50,7 +50,7 @@ mod part_1 {
         fn test_meets_criteria() {
             assert!(meets_criteria(111111));
             assert!(!(meets_criteria(223450)));
-            assert!(!(meets_criteria(223450)));
+            assert!(!(meets_criteria(123789)));
         }
     }
 }
