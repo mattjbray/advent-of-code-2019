@@ -1,4 +1,6 @@
 extern crate clap;
+#[macro_use]
+extern crate itertools;
 
 fn main() {
     let matches = clap::App::new("AoC 2019")
@@ -41,12 +43,9 @@ fn main() {
             let file = file.unwrap_or(&def_file);
             let data = std::fs::read_to_string(file).expect("couldn't read file");
             match day {
-                1 => {
-                    day_01::solve(part, data);
-                }
-                2 => {
-                    day_02::solve(part, data);
-                }
+                1 => day_01::solve(part, data),
+                2 => day_02::solve(part, data),
+                3 => day_03::solve(part, data),
                 _ => (),
             }
         }
@@ -56,3 +55,4 @@ fn main() {
 
 mod day_01;
 mod day_02;
+mod day_03;
