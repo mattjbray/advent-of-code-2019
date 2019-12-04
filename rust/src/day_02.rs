@@ -1,3 +1,24 @@
+pub fn solve(part: i8, data: String) {
+    let mut program: Vec<usize> = data
+        .split(",")
+        .map(|s| s.parse::<usize>().expect("bad data"))
+        .collect();
+
+    match part {
+        1 => {
+            program[1] = 12;
+            program[2] = 2;
+            let program = part_1::run(program);
+            println!("{}", program[0]);
+        }
+        2 => {
+            let result = part_2::force(&program);
+            println!("{}", result);
+        }
+        _ => (),
+    }
+}
+
 pub mod part_1 {
     fn op_3<F>(mut program: Vec<usize>, pc: usize, f: F) -> (Vec<usize>, Option<usize>)
     where

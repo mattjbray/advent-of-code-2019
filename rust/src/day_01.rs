@@ -1,3 +1,18 @@
+pub fn solve(part: i8, data: String) {
+    let masses: Vec<i32> = data.lines().map(|s| s.parse::<i32>().unwrap()).collect();
+    match part {
+        1 => {
+            let result1: i32 = masses.iter().map(|&m| part_1::fuel(m)).sum();
+            println!("{}", result1);
+        }
+        2 => {
+            let result2: i32 = masses.iter().map(|&m| part_2::fuel(m)).sum();
+            println!("{}", result2);
+        }
+        _ => (),
+    }
+}
+
 pub mod part_1 {
     pub fn fuel(mass: i32) -> i32 {
         (mass / 3) - 2
