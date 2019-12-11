@@ -25,17 +25,13 @@ module Part_1 = struct
     with Invalid_argument _ -> Error (`Invalid_address address)
 
   let op_3 f program pc =
+    let g = get program in
     CCResult.Infix.(
-      get program (pc + 1)
-      >>= get program
-      >>= fun arg1 ->
-      get program (pc + 2)
-      >>= get program
-      >>= fun arg2 ->
-      get program (pc + 3)
-      >>= fun result_address ->
-      set program ~address:result_address ~value:(f arg1 arg2)
-      >|= fun () -> pc + 4)
+      let* arg1 = g (pc + 1) >>= g in
+      let* arg2 = g (pc + 2) >>= g in
+      let* result_addr = g (pc + 3) in
+      let+ () = set program ~address:result_addr ~value:(f arg1 arg2) in
+      pc + 4)
 
   type state = Terminated | Running of int
 
@@ -58,9 +54,11 @@ module Part_1 = struct
           | 99 ->
               Ok Terminated
           | 1 ->
-              op_3 ( + ) program pc >|= fun pc -> Running pc
+              let+ pc = op_3 ( + ) program pc in
+              Running pc
           | 2 ->
-              op_3 ( * ) program pc >|= fun pc -> Running pc
+              let+ pc = op_3 ( * ) program pc in
+              Running pc
           | i ->
               Error (`Invalid_op_code i)) )
 
@@ -120,9 +118,9 @@ end
 module Part_2 = struct
   let run_with_values program v1 v2 =
     let open Part_1 in
-    CCResult.(
-      set program ~address:1 ~value:v1
-      >>= fun () ->
-      set program ~address:2 ~value:v2
-      >>= fun () -> run program >>= fun () -> get program 0)
+    CCResult.Infix.(
+      let* () = set program ~address:1 ~value:v1
+      and* () = set program ~address:2 ~value:v2 in
+      let* () = run program in
+      get program 0)
 end
