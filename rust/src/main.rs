@@ -47,6 +47,7 @@ fn main() {
                 2 => day_02::solve(part, data),
                 3 => day_03::solve(part, data),
                 4 => day_04::solve(part, data),
+                5 => day_05::solve(part, data),
                 _ => (),
             }
         }
@@ -58,3 +59,4 @@ mod day_01;
 mod day_02;
 mod day_03;
 mod day_04;
+mod day_05;
