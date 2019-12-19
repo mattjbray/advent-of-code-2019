@@ -1,3 +1,5 @@
+use std::iter::repeat;
+
 pub fn solve(part: u8, data: Result<String, std::io::Error>) {
     let mut program: Vec<i32> = data
         .expect("couldn't read data file")
@@ -9,7 +11,7 @@ pub fn solve(part: u8, data: Result<String, std::io::Error>) {
         1 => {
             program[1] = 12;
             program[2] = 2;
-            let _output = crate::intcode::run(&mut program, 0);
+            let _output = crate::intcode::run(&mut program, &mut repeat(0));
             println!("{}", program[0]);
         }
         2 => {
@@ -21,6 +23,7 @@ pub fn solve(part: u8, data: Result<String, std::io::Error>) {
 }
 
 pub mod part_2 {
+    use std::iter::repeat;
     pub fn force(program: &Vec<i32>) -> i32 {
         let mut noun = 0;
         let mut verb = 0;
@@ -28,7 +31,7 @@ pub mod part_2 {
             let mut p = program.clone();
             p[1] = noun;
             p[2] = verb;
-            let _output = crate::intcode::run(&mut p, 0);
+            let _output = crate::intcode::run(&mut p, &mut repeat(0));
             if p[0] == 19690720 {
                 break noun * 100 + verb;
             }

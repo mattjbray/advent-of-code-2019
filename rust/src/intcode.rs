@@ -51,7 +51,11 @@ where
     pc
 }
 
-fn step(program: &mut Vec<i32>, pc: usize, input: i32) -> (Option<usize>, Option<i32>) {
+fn step(
+    program: &mut Vec<i32>,
+    pc: usize,
+    input: &mut impl Iterator<Item = i32>,
+) -> (Option<usize>, Option<i32>) {
     let instruction = program.get(pc).expect("invalid pc");
     let s: String = instruction.to_string();
     let (modes, opcode) = if s.len() < 2 {
@@ -82,7 +86,7 @@ fn step(program: &mut Vec<i32>, pc: usize, input: i32) -> (Option<usize>, Option
         // store input
         {
             let &addr = get(program, pc + 1, Mode::Immediate);
-            program[addr as usize] = input;
+            program[addr as usize] = input.next().expect("not enough inputs");
             (Some(pc + 2), None)
         }
         Ok(4) =>
@@ -120,7 +124,7 @@ fn step(program: &mut Vec<i32>, pc: usize, input: i32) -> (Option<usize>, Option
     }
 }
 
-pub fn run(program: &mut Vec<i32>, input: i32) -> Option<i32> {
+pub fn run(program: &mut Vec<i32>, input: &mut impl Iterator<Item = i32>) -> Option<i32> {
     let mut pc = Some(0);
     let mut output = None;
     loop {
@@ -141,6 +145,7 @@ pub fn run(program: &mut Vec<i32>, input: i32) -> Option<i32> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::iter::repeat;
 
     mod day_02 {
         use super::*;
@@ -148,39 +153,39 @@ mod tests {
         #[test]
         fn test_step() {
             let mut program = vec![1, 9, 10, 3, 2, 3, 11, 0, 99, 30, 40, 50];
-            let input = 1;
+            let mut input = repeat(1);
 
-            let (pc, _) = step(&mut program, 0, input);
+            let (pc, _) = step(&mut program, 0, &mut input);
             assert_eq!(program, vec![1, 9, 10, 70, 2, 3, 11, 0, 99, 30, 40, 50]);
             assert_eq!(pc, Some(4));
 
-            let (pc, _) = step(&mut program, 4, input);
+            let (pc, _) = step(&mut program, 4, &mut input);
             assert_eq!(program, vec![3500, 9, 10, 70, 2, 3, 11, 0, 99, 30, 40, 50]);
             assert_eq!(pc, Some(8));
 
-            let (pc, _) = step(&mut program, 8, input);
+            let (pc, _) = step(&mut program, 8, &mut input);
             assert_eq!(program, vec![3500, 9, 10, 70, 2, 3, 11, 0, 99, 30, 40, 50]);
             assert_eq!(pc, None);
         }
 
         #[test]
         fn test_run() {
-            let input = 1;
+            let mut input = repeat(1);
 
             let mut program = vec![1, 0, 0, 0, 99];
-            let _output = run(&mut program, input);
+            let _output = run(&mut program, &mut input);
             assert_eq!(program, vec![2, 0, 0, 0, 99]);
 
             let mut program = vec![2, 3, 0, 3, 99];
-            let _output = run(&mut program, input);
+            let _output = run(&mut program, &mut input);
             assert_eq!(program, vec![2, 3, 0, 6, 99]);
 
             let mut program = vec![2, 4, 4, 5, 99, 0];
-            let _output = run(&mut program, input);
+            let _output = run(&mut program, &mut input);
             assert_eq!(program, vec![2, 4, 4, 5, 99, 9801]);
 
             let mut program = vec![1, 1, 1, 4, 99, 5, 6, 0, 99];
-            let _output = run(&mut program, input);
+            let _output = run(&mut program, &mut input);
             assert_eq!(program, vec![30, 1, 1, 4, 2, 5, 6, 0, 99]);
         }
     }
@@ -192,17 +197,17 @@ mod tests {
         fn test_run1() {
             let mut program = vec![3, 0, 4, 0, 99];
 
-            let input = 1;
-            let output = run(&mut program, input);
-            assert_eq!(output, Some(input));
+            let mut input = repeat(1);
+            let output = run(&mut program, &mut input);
+            assert_eq!(output, Some(1));
         }
 
         #[test]
         fn test_run2() {
             let mut program = vec![1002, 4, 3, 4, 33];
 
-            let input = 1;
-            let _ = run(&mut program, input);
+            let mut input = repeat(1);
+            let _ = run(&mut program, &mut input);
             assert_eq!(program[4], 99);
         }
 
@@ -210,8 +215,8 @@ mod tests {
         fn test_run_neg() {
             let mut program = vec![1101, 100, -1, 4, 0];
 
-            let input = 1;
-            let _ = run(&mut program, input);
+            let mut input = repeat(1);
+            let _ = run(&mut program, &mut input);
             assert_eq!(program[4], 99);
         }
 
@@ -222,10 +227,10 @@ mod tests {
             // outputs 1 if input == 8
             let program = vec![3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8];
 
-            let output = run(&mut program.clone(), 8);
+            let output = run(&mut program.clone(), &mut repeat(8));
             assert_eq!(output, Some(1));
 
-            let output = run(&mut program.clone(), 9);
+            let output = run(&mut program.clone(), &mut repeat(9));
             assert_eq!(output, Some(0));
         }
 
@@ -234,10 +239,10 @@ mod tests {
             // outputs 1 if input < 8
             let program = vec![3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8];
 
-            let output = run(&mut program.clone(), 7);
+            let output = run(&mut program.clone(), &mut repeat(7));
             assert_eq!(output, Some(1));
 
-            let output = run(&mut program.clone(), 8);
+            let output = run(&mut program.clone(), &mut repeat(8));
             assert_eq!(output, Some(0));
         }
 
@@ -246,10 +251,10 @@ mod tests {
             // outputs 1 if input == 8
             let program = vec![3, 3, 1108, -1, 8, 3, 4, 3, 99];
 
-            let output = run(&mut program.clone(), 8);
+            let output = run(&mut program.clone(), &mut repeat(8));
             assert_eq!(output, Some(1));
 
-            let output = run(&mut program.clone(), 9);
+            let output = run(&mut program.clone(), &mut repeat(9));
             assert_eq!(output, Some(0));
         }
 
@@ -258,10 +263,10 @@ mod tests {
             // outputs 1 if input < 8
             let program = vec![3, 3, 1107, -1, 8, 3, 4, 3, 99];
 
-            let output = run(&mut program.clone(), 7);
+            let output = run(&mut program.clone(), &mut repeat(7));
             assert_eq!(output, Some(1));
 
-            let output = run(&mut program.clone(), 8);
+            let output = run(&mut program.clone(), &mut repeat(8));
             assert_eq!(output, Some(0));
         }
 
@@ -270,10 +275,10 @@ mod tests {
             // ouputs 1 if input != 0
             let program = vec![3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9];
 
-            let output = run(&mut program.clone(), 10);
+            let output = run(&mut program.clone(), &mut repeat(10));
             assert_eq!(output, Some(1));
 
-            let output = run(&mut program.clone(), 0);
+            let output = run(&mut program.clone(), &mut repeat(0));
             assert_eq!(output, Some(0));
         }
 
@@ -282,10 +287,10 @@ mod tests {
             // ouputs 1 if input != 0
             let program = vec![3, 3, 1105, -1, 9, 1101, 0, 0, 12, 4, 12, 99, 1];
 
-            let output = run(&mut program.clone(), 10);
+            let output = run(&mut program.clone(), &mut repeat(10));
             assert_eq!(output, Some(1));
 
-            let output = run(&mut program.clone(), 0);
+            let output = run(&mut program.clone(), &mut repeat(0));
             assert_eq!(output, Some(0));
         }
 
@@ -301,12 +306,12 @@ mod tests {
                 1, 20, 4, 20, 1105, 1, 46, 98, 99,
             ];
 
-            let output = run(&mut program.clone(), 7);
+            let output = run(&mut program.clone(), &mut repeat(7));
             assert_eq!(output, Some(999));
 
-            let output = run(&mut program.clone(), 8);
+            let output = run(&mut program.clone(), &mut repeat(8));
             assert_eq!(output, Some(1000));
-            let output = run(&mut program.clone(), 9);
+            let output = run(&mut program.clone(), &mut repeat(9));
             assert_eq!(output, Some(1001));
         }
     }
