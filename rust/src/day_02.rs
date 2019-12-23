@@ -1,7 +1,8 @@
 use std::iter::repeat;
+use crate::intcode::Program;
 
 pub fn solve(part: u8, data: Result<String, std::io::Error>) {
-    let mut program: Vec<i32> = data
+    let memory: Vec<i32> = data
         .expect("couldn't read data file")
         .split(",")
         .map(|s| s.parse::<i32>().expect("bad data"))
@@ -9,13 +10,14 @@ pub fn solve(part: u8, data: Result<String, std::io::Error>) {
 
     match part {
         1 => {
-            program[1] = 12;
-            program[2] = 2;
-            let _output = crate::intcode::run(&mut program, &mut repeat(0));
-            println!("{}", program[0]);
+            let mut program = Program::new(memory);
+            program.memory[1] = 12;
+            program.memory[2] = 2;
+            let _output = program.run(&mut repeat(0));
+            println!("{}", program.memory[0]);
         }
         2 => {
-            let result = part_2::force(&program);
+            let result = part_2::force(&memory);
             println!("{}", result);
         }
         _ => (),
@@ -24,15 +26,16 @@ pub fn solve(part: u8, data: Result<String, std::io::Error>) {
 
 pub mod part_2 {
     use std::iter::repeat;
-    pub fn force(program: &Vec<i32>) -> i32 {
+    use crate::intcode::Program;
+    pub fn force(memory: &Vec<i32>) -> i32 {
         let mut noun = 0;
         let mut verb = 0;
         loop {
-            let mut p = program.clone();
-            p[1] = noun;
-            p[2] = verb;
-            let _output = crate::intcode::run(&mut p, &mut repeat(0));
-            if p[0] == 19690720 {
+            let mut p = Program::new(memory.clone());
+            p.memory[1] = noun;
+            p.memory[2] = verb;
+            let _output = p.run(&mut repeat(0));
+            if p.memory[0] == 19690720 {
                 break noun * 100 + verb;
             }
             if verb < 99 {
