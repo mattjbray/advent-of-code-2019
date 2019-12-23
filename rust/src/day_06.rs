@@ -5,16 +5,18 @@ pub fn solve(part: u8, data: Result<String, std::io::Error>) {
         .expect("Couldn't parse data");
     match part {
         1 => println!("{}", t.checksum()),
-        2 => {}
+        2 => println!("{}", t.transfers_required("YOU", "SAN").unwrap()),
         _ => (),
     }
 }
 
 mod part_1 {
+    use std::fmt;
+
     #[derive(Clone, Debug, PartialEq)]
     pub struct OrbitTree {
-        object: String,
-        orbitees: Vec<OrbitTree>,
+        pub object: String,
+        pub orbitees: Vec<OrbitTree>,
     }
 
     impl OrbitTree {
@@ -55,6 +57,20 @@ mod part_1 {
         pub fn checksum(&self) -> u32 {
             self.checksum_rec(0)
         }
+
+        fn fmt_rec(&self, f: &mut fmt::Formatter, depth: u32) -> fmt::Result {
+            write!(
+                f,
+                "{:width$}{}\n",
+                "",
+                self.object,
+                width = (depth as usize)
+            )?;
+            for o in self.orbitees.iter() {
+                o.fmt_rec(f, depth + 1)?;
+            }
+            write!(f, "")
+        }
     }
 
     impl std::str::FromStr for OrbitTree {
@@ -87,6 +103,12 @@ mod part_1 {
             } else {
                 Ok(ts[0].clone())
             }
+        }
+    }
+
+    impl fmt::Display for OrbitTree {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            self.fmt_rec(f, 0)
         }
     }
 
@@ -159,6 +181,78 @@ K)L
         fn test_checksum() {
             let t = make();
             assert_eq!(t.checksum(), 42);
+        }
+    }
+}
+
+mod part_2 {
+    use super::part_1::*;
+
+    impl OrbitTree {
+        fn contains(&self, a: &str) -> bool {
+            self.object.as_str() == a || self.orbitees.iter().any(|o| o.contains(a))
+        }
+
+        fn first_common_ancestor(&self, a: &str, b: &str) -> Option<&Self> {
+            if self.contains(a) && self.contains(b) {
+                self.orbitees
+                    .iter()
+                    .find_map(|o| o.first_common_ancestor(a, b))
+                    .or(Some(&self))
+            } else {
+                None
+            }
+        }
+
+        fn depth_to(&self, a: &str) -> Option<u32> {
+            if self.object.as_str() == a {
+                Some(0)
+            } else {
+                self.orbitees
+                    .iter()
+                    .find_map(|o| o.depth_to(a))
+                    .map(|d| d + 1)
+            }
+        }
+
+        pub fn transfers_required(&self, a: &str, b: &str) -> Option<u32> {
+            self.first_common_ancestor(a, b)
+                .and_then(|ca| match (ca.depth_to(a), ca.depth_to(b)) {
+                    (Some(da), Some(db)) => Some(da + db - 2), // exclude the leaf nodes
+                    _ => None,
+                })
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn test_transfers() {
+            let input = "COM)B
+B)C
+C)D
+D)E
+E)F
+B)G
+G)H
+D)I
+E)J
+J)K
+K)L
+K)YOU
+I)SAN
+";
+            let t: OrbitTree = input.parse().unwrap();
+
+            let ca = t.first_common_ancestor("YOU", "SAN").unwrap();
+            assert_eq!(ca.object.as_str(), "D");
+
+            assert_eq!(ca.depth_to("YOU"), Some(4));
+            assert_eq!(ca.depth_to("SAN"), Some(2));
+
+            assert_eq!(t.transfers_required("YOU", "SAN"), Some(4));
         }
     }
 }

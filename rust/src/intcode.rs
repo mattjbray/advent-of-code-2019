@@ -37,10 +37,6 @@ impl Program {
         }
     }
 
-    pub fn state(&self) -> &State {
-        &self.state
-    }
-
     fn get(&self, addr: usize, mode: Mode) -> &i32 {
         let val = self.memory.get(addr).expect("invalid pc");
         match mode {
