@@ -1,10 +1,10 @@
 use crate::intcode::{Program, State};
 
 pub fn solve(part: u8, data: Result<String, std::io::Error>) {
-    let memory: Vec<i32> = data
+    let memory: Vec<i64> = data
         .expect("couldn't read data file")
         .split(",")
-        .map(|s| s.parse::<i32>().expect("bad data"))
+        .map(|s| s.parse::<i64>().expect("bad data"))
         .collect();
 
     match part {
@@ -23,15 +23,15 @@ pub fn solve(part: u8, data: Result<String, std::io::Error>) {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct PhaseSetting {
-    a: i32,
-    b: i32,
-    c: i32,
-    d: i32,
-    e: i32,
+    a: i64,
+    b: i64,
+    c: i64,
+    d: i64,
+    e: i64,
 }
 
 impl PhaseSetting {
-    fn new(a: i32, b: i32, c: i32, d: i32, e: i32) -> Self {
+    fn new(a: i64, b: i64, c: i64, d: i64, e: i64) -> Self {
         Self { a, b, c, d, e }
     }
 
@@ -55,15 +55,15 @@ mod part_1 {
     use crate::intcode::Program;
     use std::collections::VecDeque;
 
-    fn run_amp(program: &Program, phase_setting: i32, input: i32) -> Option<i32> {
+    fn run_amp(program: &Program, phase_setting: i64, input: i64) -> Option<i64> {
         let mut inputs = VecDeque::new();
         inputs.push_back(phase_setting);
         inputs.push_back(input);
         let mut program = program.clone();
-        program.run(&mut inputs.iter().cloned())
+        program.run(&mut inputs.iter().cloned()).first().map(|x| *x)
     }
 
-    fn thruster_signal(program: &Program, p: &PhaseSetting) -> i32 {
+    fn thruster_signal(program: &Program, p: &PhaseSetting) -> i64 {
         let a_output = run_amp(program, p.a, 0).expect("amp A produced no output");
         let b_output = run_amp(program, p.b, a_output).expect("amp B produced no output");
         let c_output = run_amp(program, p.c, b_output).expect("amp C produced no output");
@@ -72,7 +72,7 @@ mod part_1 {
         e_output
     }
 
-    pub fn find_largest_thruster_signal(program: &Program) -> Option<(PhaseSetting, i32)> {
+    pub fn find_largest_thruster_signal(program: &Program) -> Option<(PhaseSetting, i64)> {
         PhaseSetting::iter()
             .map(|ps| (ps, thruster_signal(program, &ps)))
             .max_by_key(|x| x.1)
@@ -141,7 +141,7 @@ mod part_2 {
     }
 
     impl Amp {
-        fn new(name: &'static str, memory: &[i32]) -> Self {
+        fn new(name: &'static str, memory: &[i64]) -> Self {
             Self {
                 name,
                 program: Program::new(Vec::from(memory)),
@@ -149,7 +149,7 @@ mod part_2 {
         }
     }
 
-    fn thruster_signal(memory: &[i32], phase_setting: &PhaseSetting) -> i32 {
+    fn thruster_signal(memory: &[i64], phase_setting: &PhaseSetting) -> i64 {
         let mut amps = VecDeque::from(vec![
             Amp::new("A", memory),
             Amp::new("B", memory),
@@ -204,7 +204,7 @@ mod part_2 {
         inputs.pop_front().expect("not enought outputs")
     }
 
-    pub fn find_largest_thruster_signal(memory: &[i32]) -> Option<(PhaseSetting, i32)> {
+    pub fn find_largest_thruster_signal(memory: &[i64]) -> Option<(PhaseSetting, i64)> {
         PhaseSetting::iter_feedback()
             .map(|ps| (ps, thruster_signal(memory, &ps)))
             .max_by_key(|x| x.1)

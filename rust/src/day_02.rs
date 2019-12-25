@@ -2,10 +2,10 @@ use std::iter::repeat;
 use crate::intcode::Program;
 
 pub fn solve(part: u8, data: Result<String, std::io::Error>) {
-    let memory: Vec<i32> = data
+    let memory: Vec<i64> = data
         .expect("couldn't read data file")
         .split(",")
-        .map(|s| s.parse::<i32>().expect("bad data"))
+        .map(|s| s.parse::<i64>().expect("bad data"))
         .collect();
 
     match part {
@@ -27,7 +27,7 @@ pub fn solve(part: u8, data: Result<String, std::io::Error>) {
 pub mod part_2 {
     use std::iter::repeat;
     use crate::intcode::Program;
-    pub fn force(memory: &Vec<i32>) -> i32 {
+    pub fn force(memory: &Vec<i64>) -> i64 {
         let mut noun = 0;
         let mut verb = 0;
         loop {

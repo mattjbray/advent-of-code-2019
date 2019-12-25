@@ -2,10 +2,10 @@ use std::iter::repeat;
 use crate::intcode::Program;
 
 pub fn solve(part: u8, data: Result<String, std::io::Error>) {
-    let memory: Vec<i32> = data
+    let memory: Vec<i64> = data
         .expect("couldn't read data file")
         .split(",")
-        .map(|s| s.parse::<i32>().expect("bad data"))
+        .map(|s| s.parse::<i64>().expect("bad data"))
         .collect();
 
     let mut program = Program::new(memory);
