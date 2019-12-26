@@ -1,17 +1,18 @@
+#[derive(Clone)]
 enum Mode {
     Position,
     Immediate,
     Relative,
 }
 
-fn next_arg_mode<'a, T>(modes: &mut T) -> Mode
-where
-    T: Iterator<Item = &'a u8>,
-{
-    match modes.next() {
-        None | Some(b'0') => Mode::Position,
-        Some(b'1') => Mode::Immediate,
-        Some(_) => Mode::Relative,
+impl Mode {
+    fn from_byte(b: &u8) -> Option<Mode> {
+        match b {
+            b'0' => Some(Mode::Position),
+            b'1' => Some(Mode::Immediate),
+            b'2' => Some(Mode::Relative),
+            _ => None,
+        }
     }
 }
 
@@ -29,6 +30,7 @@ pub struct Program {
     pub memory: Vec<i64>,
     pub state: State,
     relative_base: usize,
+    param_modes: Vec<Mode>,
 }
 
 impl Program {
@@ -38,6 +40,7 @@ impl Program {
             memory,
             state: State::Running,
             relative_base: 0,
+            param_modes: vec![],
         }
     }
 
@@ -49,27 +52,6 @@ impl Program {
         *self.memory.get(addr).expect("invalid pc")
     }
 
-    fn get_addr(&mut self, addr: usize, mode: Mode) -> usize {
-        match mode {
-            Mode::Immediate => {
-                addr
-            }
-            Mode::Position => {
-                 self.get(addr) as usize
-            }
-            Mode::Relative => {
-                let offset = self.get(addr);
-                let addr1 = self.relative_base as i64 + offset;
-                addr1 as usize
-            }
-        }
-    }
-
-    fn get_param(&mut self, addr: usize, mode: Mode) -> i64 {
-        let addr = self.get_addr(addr, mode);
-         self.get(addr)
-    }
-
     fn set(&mut self, addr: usize, val: i64) {
         if addr >= self.memory.len() {
             self.memory.resize(addr + 1, 0)
@@ -78,102 +60,121 @@ impl Program {
         self.memory[addr] = val
     }
 
-    fn op_3<'a, F, M>(&mut self, modes: &mut M, f: F)
-    where
-        F: Fn(i64, i64) -> i64,
-        M: Iterator<Item = &'a u8>,
-    {
-        let arg_1_mode = next_arg_mode(modes);
-        let arg_2_mode = next_arg_mode(modes);
-        let arg_3_mode = next_arg_mode(modes);
-        let arg_1 = self.get_param(self.pc + 1, arg_1_mode);
-        let arg_2 = self.get_param(self.pc + 2, arg_2_mode);
-        let result_addr = self.get_addr(self.pc + 3, arg_3_mode);
-        self.set(result_addr as usize, f(arg_1, arg_2));
-        self.pc += 4;
+    fn next_param_mode(&mut self) -> Mode {
+        self.param_modes.pop().unwrap_or(Mode::Position)
     }
 
-    fn jump_if<'a, F, M>(&mut self, modes: &mut M, f: F)
+    fn get_addr(&mut self, addr: usize, mode: Mode) -> usize {
+        match mode {
+            Mode::Immediate => addr,
+            Mode::Position => self.get(addr) as usize,
+            Mode::Relative => {
+                let offset = self.get(addr);
+                let addr1 = self.relative_base as i64 + offset;
+                addr1 as usize
+            }
+        }
+    }
+
+    fn next_param_value(&mut self) -> i64 {
+        let mode = self.next_param_mode();
+        let addr = self.get_addr(self.pc, mode);
+        self.pc += 1;
+        self.get(addr)
+    }
+
+    fn next_param_addr(&mut self) -> usize {
+        let mode = self.next_param_mode();
+        let addr = self.get_addr(self.pc, mode);
+        self.pc += 1;
+        addr
+    }
+
+    fn op_3<'a, F>(&mut self, f: F)
+    where
+        F: Fn(i64, i64) -> i64,
+    {
+        let arg_1 = self.next_param_value();
+        let arg_2 = self.next_param_value();
+        let result_addr = self.next_param_addr();
+        self.set(result_addr as usize, f(arg_1, arg_2));
+    }
+
+    fn jump_if<'a, F>(&mut self, f: F)
     where
         F: Fn(i64) -> bool,
-        M: Iterator<Item = &'a u8>,
     {
-        let arg1_mode = next_arg_mode(modes);
-        let arg2_mode = next_arg_mode(modes);
-        let arg1 = self.get_param(self.pc + 1, arg1_mode);
-        self.pc = if f(arg1) {
-            self.get_param(self.pc + 2, arg2_mode) as usize
-        } else {
-            self.pc + 3
+        let arg_1 = self.next_param_value();
+        let arg_2 = self.next_param_value();
+        if f(arg_1) {
+            self.pc = arg_2 as usize
         }
     }
 
     pub fn step(&mut self) {
         let instruction = self.get(self.pc);
+        self.pc += 1;
         let s: String = instruction.to_string();
         let (modes, opcode) = if s.len() < 2 {
             ("", &s[..])
         } else {
             s.split_at(s.len() - 2)
         };
-        let mut modes = modes.as_bytes().iter().rev();
+        let modes: Vec<Mode> = modes
+            .as_bytes()
+            .iter()
+            .map(|m| Mode::from_byte(m).expect("Invalid param mode"))
+            .collect();
+        self.param_modes = modes;
         match opcode.parse::<u8>() {
-            Ok(99) => {
-                self.state = State::Terminated
-            }
+            Ok(99) => self.state = State::Terminated,
             Ok(1) =>
             // add
             {
-                self.op_3(&mut modes, |x, y| x + y);
+                self.op_3(|x, y| x + y);
             }
             Ok(2) =>
             // mul
             {
-                self.op_3(&mut modes, |x, y| x * y);
+                self.op_3(|x, y| x * y);
             }
             Ok(3) =>
             // store input
             {
-                let mode = next_arg_mode(&mut modes);
-                let addr = self.get_addr(self.pc + 1, mode);
+                let addr = self.next_param_addr();
                 self.state = State::WaitForInput(addr as usize);
-                self.pc += 2;
             }
             Ok(4) =>
             // output
             {
-                let mode = next_arg_mode(&mut modes);
-                let output = self.get_param(self.pc + 1, mode);
+                let output = self.next_param_value();
                 self.state = State::Output(output);
-                self.pc += 2;
             }
             Ok(5) =>
             // jump-if-true
             {
-                self.jump_if(&mut modes, |x| x != 0);
+                self.jump_if(|x| x != 0);
             }
             Ok(6) =>
             // jump-if-false
             {
-                self.jump_if(&mut modes, |x| x == 0);
+                self.jump_if(|x| x == 0);
             }
             Ok(7) =>
             // less-than
             {
-                self.op_3(&mut modes, |x, y| if x < y { 1 } else { 0 });
+                self.op_3(|x, y| if x < y { 1 } else { 0 });
             }
             Ok(8) =>
             // equals
             {
-                self.op_3(&mut modes, |x, y| if x == y { 1 } else { 0 });
+                self.op_3(|x, y| if x == y { 1 } else { 0 });
             }
             Ok(9) =>
             // change relative base
             {
-                let mode = next_arg_mode(&mut modes);
-                let param = self.get_param(self.pc + 1, mode);
+                let param = self.next_param_value();
                 self.relative_base = (self.relative_base as i64 + param) as usize;
-                self.pc += 2;
             }
             _ => panic!("invalid instruction"),
         }
