@@ -15,12 +15,12 @@ pub fn solve(part: u8, data: Result<String, std::io::Error>) {
 
 #[derive(Hash, PartialEq, Eq, Debug, Clone, Copy)]
 pub struct Pos {
-    x: u32,
-    y: u32,
+    pub x: i32,
+    pub y: i32,
 }
 
 impl Pos {
-    fn new(x: u32, y: u32) -> Self {
+    pub fn new(x: i32, y: i32) -> Self {
         Pos { x, y }
     }
 
@@ -30,10 +30,10 @@ impl Pos {
         (dy.atan2(dx) + PI * 5. / 2.) % (2. * PI)
     }
 
-    fn dist_to(&self, other: &Pos) -> u32 {
-        let dx = other.x as i32 - self.x as i32;
-        let dy = other.y as i32 - self.y as i32;
-        (dy.abs() + dx.abs()) as u32
+    fn dist_to(&self, other: &Pos) -> i32 {
+        let dx = other.x - self.x;
+        let dy = other.y - self.y;
+        dy.abs() + dx.abs()
     }
 }
 
@@ -44,16 +44,17 @@ impl std::fmt::Display for Pos {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Grid<T>(HashMap<Pos, T>);
+pub struct Grid<T>(pub HashMap<Pos, T>);
 
 impl<T> std::fmt::Display for Grid<T>
 where
     T: std::fmt::Display,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        let min_p = self.min_pos();
         let max_p = self.max_pos();
-        for y in 0..max_p.y + 1 {
-            for x in 0..max_p.x + 1 {
+        for y in min_p.y..max_p.y + 1 {
+            for x in min_p.x..max_p.x + 1 {
                 let p = Pos::new(x, y);
                 match self.0.get(&p) {
                     Some(v) => write!(f, "{}", v),
@@ -93,7 +94,7 @@ where
                     _ => {
                         let v = std::str::from_utf8(std::slice::from_ref(byte))?;
                         let v = v.parse().map_err(|e| GridParseError::ItemError(e))?;
-                        let pos = Pos::new(x as u32, y as u32);
+                        let pos = Pos::new(x as i32, y as i32);
                         roids.insert(pos, v);
                     }
                 }
@@ -139,6 +140,16 @@ impl std::str::FromStr for Roid {
 }
 
 impl<T> Grid<T> {
+    pub fn new() -> Self {
+        Grid(HashMap::new())
+    }
+
+    fn min_pos(&self) -> Pos {
+        let min_x = self.0.keys().map(|p| p.x).min().unwrap_or(0);
+        let min_y = self.0.keys().map(|p| p.y).min().unwrap_or(0);
+        Pos::new(min_x, min_y)
+    }
+
     fn max_pos(&self) -> Pos {
         let max_x = self.0.keys().map(|p| p.x).max().unwrap_or(0);
         let max_y = self.0.keys().map(|p| p.y).max().unwrap_or(0);
