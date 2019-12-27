@@ -1,4 +1,4 @@
-use crate::day_10::{Grid, Pos};
+use crate::grid::{Grid, Pos};
 use crate::intcode;
 
 pub fn solve(part: u8, data: Result<String, std::io::Error>) {

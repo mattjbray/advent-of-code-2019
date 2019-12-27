@@ -61,6 +61,7 @@ fn main() {
     }
 }
 
+mod grid;
 mod intcode;
 
 mod day_01;
