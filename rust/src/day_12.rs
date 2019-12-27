@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 pub fn solve(part: u8, data: Result<String, std::io::Error>) {
     let mut positions = vec![];
 
@@ -14,6 +16,10 @@ pub fn solve(part: u8, data: Result<String, std::io::Error>) {
                 system.step();
             }
             println!("{}", system.total_energy());
+        }
+        2 => {
+            let repeats = steps_until_repeat(&mut system);
+            println!("{}", lcm3(repeats));
         }
         _ => (),
     }
@@ -44,7 +50,7 @@ impl std::str::FromStr for Vec3 {
         let s = s.trim_end_matches('>');
         let parts: Vec<_> = s.split(", ").collect();
         if parts.len() != 3 {
-            return Err(())
+            return Err(());
         }
         let x_parts: Vec<_> = parts[0].split('=').collect();
         let x: i32 = x_parts[1].parse().unwrap();
@@ -121,13 +127,19 @@ struct MoonSystem {
 }
 
 impl MoonSystem {
-    fn new(moons: Vec<Moon>) -> Self {
+    fn from_positions(ps: Vec<Vec3>) -> Self {
+        let moons = ps.into_iter().map(|p| Moon::new(p)).collect();
         Self { moons }
     }
 
-    fn from_positions(ps: Vec<Vec3>) -> Self {
-        let moons = ps.into_iter().map(|p| Moon::new(p)).collect();
-        Self{ moons }
+    /** Collect all the values for a single coordinate axis of the system. */
+    fn to_vec(&self, i: usize) -> Vec<i32> {
+        let mut xs = vec![];
+        for m in self.moons.iter() {
+            xs.push(m.pos.0[i]);
+            xs.push(m.vel.0[i]);
+        }
+        xs
     }
 
     fn step_gravity(&mut self) {
@@ -164,6 +176,52 @@ impl std::fmt::Display for MoonSystem {
         }
         Ok(())
     }
+}
+
+fn steps_until_repeat(system: &mut MoonSystem) -> [i64; 3] {
+    let mut history = [HashSet::new(), HashSet::new(), HashSet::new()];
+    let mut repeats = [None; 3];
+    let mut steps = 0;
+
+    loop {
+        for i in 0..3 {
+            if repeats[i].is_none() {
+                let v = system.to_vec(i);
+                if history[i].contains(&v) {
+                    repeats[i] = Some(steps);
+                } else {
+                    history[i].insert(v);
+                }
+            }
+        }
+        match repeats {
+            [Some(x), Some(y), Some(z)] => return [x, y, z],
+            _ => (),
+        }
+        steps += 1;
+        system.step();
+    }
+}
+
+fn gcd(a: i64, b: i64) -> i64 {
+    let mut a = a;
+    let mut b = b;
+    loop {
+        if b == 0 {
+            return a;
+        }
+        let t = b;
+        b = a % b;
+        a = t;
+    }
+}
+
+fn lcm(a: i64, b: i64) -> i64 {
+    (a * b).abs() / gcd(a, b)
+}
+
+fn lcm3(a: [i64; 3]) -> i64 {
+    lcm(lcm(a[0], a[1]), a[2])
 }
 
 mod part_1 {
@@ -248,6 +306,55 @@ mod part_1 {
             assert_eq!(system.moons[0].kinetic_energy(), 10);
 
             assert_eq!(system.total_energy(), 1940);
+        }
+    }
+}
+
+mod part_2 {
+    #[cfg(test)]
+    mod tests {
+        use super::super::*;
+
+        #[test]
+        fn test_1() {
+            let input = "\
+<x=-1, y=0, z=2>
+<x=2, y=-10, z=-7>
+<x=4, y=-8, z=8>
+<x=3, y=5, z=-1>
+";
+
+            let mut positions = vec![];
+
+            for line in input.lines() {
+                let p: Vec3 = line.parse().unwrap();
+                positions.push(p);
+            }
+
+            let mut system = MoonSystem::from_positions(positions);
+
+            assert_eq!(lcm3(steps_until_repeat(&mut system)), 2772);
+        }
+
+        #[test]
+        fn test_2() {
+            let input = "\
+<x=-8, y=-10, z=0>
+<x=5, y=5, z=10>
+<x=2, y=-7, z=3>
+<x=9, y=-8, z=-3>
+";
+
+            let mut positions = vec![];
+
+            for line in input.lines() {
+                let p: Vec3 = line.parse().unwrap();
+                positions.push(p);
+            }
+
+            let mut system = MoonSystem::from_positions(positions);
+
+            assert_eq!(lcm3(steps_until_repeat(&mut system)), 4686774924);
         }
     }
 }
