@@ -15,7 +15,13 @@ pub fn solve(part: u8, data: Result<String, std::io::Error>) {
             println!("{}", grid);
             let num_block_tiles = grid.0.values().filter(|t| t.is_block()).count();
             println!("{}", num_block_tiles);
-        }
+        },
+        2 => {
+            program.memory[0] = 2;
+            let score = go(&mut program, &mut grid);
+            println!("{}", grid);
+            println!("{}", score);
+        },
         _ => (),
     }
 }
@@ -64,9 +70,12 @@ impl std::fmt::Display for Tile {
     }
 }
 
-fn go(program: &mut Program, grid: &mut Grid<Tile>) {
+fn go(program: &mut Program, grid: &mut Grid<Tile>) -> i64 {
     let mut next_x = None;
     let mut next_y = None;
+    let mut score = 0;
+    let mut tile_x = 0;
+    let mut paddle_x = 0;
 
     loop {
         match program.state {
@@ -79,17 +88,43 @@ fn go(program: &mut Program, grid: &mut Grid<Tile>) {
                     (None, _) => next_x = Some(o),
                     (Some(_), None) => next_y = Some(o),
                     (Some(x), Some(y)) => {
-                        grid.0
-                            .insert(Pos::new(x as i32, y as i32), Tile::of_id(o).unwrap());
+                        if x == -1 && y == 0 {
+                            score = o;
+                        } else {
+                            let tile = Tile::of_id(o).unwrap();
+                            if let Tile::Ball = tile {
+                                tile_x = x;
+                            }
+                            if let Tile::Paddle = tile {
+                                paddle_x = x;
+                            }
+                            grid.0
+                                .insert(Pos::new(x as i32, y as i32), tile);
+                        }
                         next_x = None;
                         next_y = None;
                     }
                 }
                 program.state = State::Running;
             }
-            State::WaitForInput(_addr) => {
+            State::WaitForInput(addr) => {
+                if grid.0.values().filter(|t| t.is_block()).count() == 0 {
+                    break
+                }
+                let input = {
+                    if paddle_x < tile_x {
+                        1
+                    } else if paddle_x > tile_x {
+                        -1
+                    } else {
+                        0
+                    }
+                };
+                program.memory[addr] = input;
                 program.state = State::Running;
             }
         }
+
     }
+    score
 }
